@@ -214,7 +214,7 @@ void StepGuider::InitBumpPositions(void)
     m_yBumpPos1 = IntegerPercent(m_bumpPercentage, MaxPosition(UP));
     m_yBumpPos2 = IntegerPercent(limit2Pct, MaxPosition(UP));
 
-    enum { BumpCenterTolerancePct = 10 }; // end bump when position is within 10 pct of center
+    enum { BumpCenterTolerancePct = 30 }; // end bump when position is within 10 pct of center
     m_bumpCenterTolerance = IntegerPercent(BumpCenterTolerancePct, 2 * MaxPosition(UP));
 
     Debug.Write(wxString::Format("StepGuider: Bump Limits: X: %d, %d; Y: %d, %d; center: %d\n", m_xBumpPos1, m_xBumpPos2, m_yBumpPos1, m_yBumpPos2, m_bumpCenterTolerance));
