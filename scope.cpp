@@ -114,11 +114,6 @@ Scope::~Scope(void)
     }
 }
 
-int Scope::GetCalibrationDuration(void)
-{
-    return m_calibrationDuration;
-}
-
 bool Scope::SetCalibrationDuration(int calibrationDuration)
 {
     bool bError = false;
@@ -144,11 +139,6 @@ bool Scope::SetCalibrationDuration(int calibrationDuration)
     return bError;
 }
 
-int Scope::GetMaxDecDuration(void)
-{
-    return m_maxDecDuration;
-}
-
 bool Scope::SetMaxDecDuration(int maxDecDuration)
 {
     bool bError = false;
@@ -161,9 +151,9 @@ bool Scope::SetMaxDecDuration(int maxDecDuration)
         }
 
         if (m_maxDecDuration != maxDecDuration)
-            GuideLog.SetGuidingParam("Dec Max Duration", maxDecDuration);
-        m_maxDecDuration = maxDecDuration;
+            pFrame->NotifyGuidingParam("Dec Max Duration", maxDecDuration);
 
+        m_maxDecDuration = maxDecDuration;
     }
     catch (const wxString& Msg)
     {
@@ -177,12 +167,7 @@ bool Scope::SetMaxDecDuration(int maxDecDuration)
     return bError;
 }
 
-int Scope::GetMaxRaDuration(void)
-{
-    return m_maxRaDuration;
-}
-
-bool Scope::SetMaxRaDuration(double maxRaDuration)
+bool Scope::SetMaxRaDuration(int maxRaDuration)
 {
     bool bError = false;
 
@@ -194,9 +179,11 @@ bool Scope::SetMaxRaDuration(double maxRaDuration)
         }
 
         if (m_maxRaDuration != maxRaDuration)
-            GuideLog.SetGuidingParam("RA Max Duration", maxRaDuration);
-        m_maxRaDuration =  maxRaDuration;
+        {
+            pFrame->NotifyGuidingParam("RA Max Duration", maxRaDuration);
 
+            m_maxRaDuration = maxRaDuration;
+        }
     }
     catch (const wxString& Msg)
     {
@@ -208,11 +195,6 @@ bool Scope::SetMaxRaDuration(double maxRaDuration)
     pConfig->Profile.SetInt("/scope/MaxRaDuration", m_maxRaDuration);
 
     return bError;
-}
-
-DEC_GUIDE_MODE Scope::GetDecGuideMode(void)
-{
-    return m_decGuideMode;
 }
 
 bool Scope::SetDecGuideMode(int decGuideMode)
@@ -240,7 +222,7 @@ bool Scope::SetDecGuideMode(int decGuideMode)
             };
 
             Debug.Write(wxString::Format("DecGuideMode set to %s (%d)\n", dec_modes[decGuideMode], decGuideMode));
-            GuideLog.SetGuidingParam("Dec Guide Mode", dec_modes[decGuideMode]);
+            pFrame->NotifyGuidingParam("Dec Guide Mode", wxString(dec_modes[decGuideMode]));
 
             m_decGuideMode = (DEC_GUIDE_MODE) decGuideMode;
 
@@ -1824,18 +1806,18 @@ Scope::ScopeGraphControlPane::~ScopeGraphControlPane()
 void Scope::ScopeGraphControlPane::OnMaxRaDurationSpinCtrl(wxSpinEvent& WXUNUSED(evt))
 {
     m_pScope->SetMaxRaDuration(m_pMaxRaDuration->GetValue());
-    GuideLog.SetGuidingParam("Max RA duration", m_pMaxRaDuration->GetValue());
+    pFrame->NotifyGuidingParam("Max RA duration", m_pMaxRaDuration->GetValue());
 }
 
 void Scope::ScopeGraphControlPane::OnMaxDecDurationSpinCtrl(wxSpinEvent& WXUNUSED(evt))
 {
     m_pScope->SetMaxDecDuration(m_pMaxDecDuration->GetValue());
-    GuideLog.SetGuidingParam("Max DEC duration", m_pMaxDecDuration->GetValue());
+    pFrame->NotifyGuidingParam("Max DEC duration", m_pMaxDecDuration->GetValue());
 }
 
 void Scope::ScopeGraphControlPane::OnDecModeChoice(wxCommandEvent& WXUNUSED(evt))
 {
     m_pScope->SetDecGuideMode(m_pDecMode->GetSelection());
     wxString dec_choices[] = { _("Off"),_("Auto"),_("North"),_("South") };
-    GuideLog.SetGuidingParam("DEC guide mode", dec_choices[m_pDecMode->GetSelection()]);
+    pFrame->NotifyGuidingParam("DEC guide mode", dec_choices[m_pDecMode->GetSelection()]);
 }

@@ -690,6 +690,38 @@ static void get_profile(JObj& response, const json_value *params)
     response << jrpc_result(t);
 }
 
+inline static void devstat(JObj& t, const char *dev, const wxString& name, bool connected)
+{
+    JObj o;
+    t << NV(dev, o << NV("name", name) << NV("connected", connected));
+}
+
+static void get_current_equipment(JObj& response, const json_value *params)
+{
+    JObj t;
+
+    if (pCamera)
+       devstat(t, "camera", pCamera->Name, pCamera->Connected);
+
+    Mount *mount = TheScope();
+    if (mount)
+        devstat(t, "mount", mount->Name(), mount->IsConnected());
+
+    Mount *auxMount = pFrame->pGearDialog->AuxScope();
+    if (auxMount)
+        devstat(t, "aux_mount", auxMount->Name(), auxMount->IsConnected());
+
+    Mount *ao = TheAO();
+    if (ao)
+        devstat(t, "AO", ao->Name(), ao->IsConnected());
+
+    Rotator *rotator = pRotator;
+    if (rotator)
+        devstat(t, "rotator", rotator->Name(), rotator->IsConnected());
+
+    response << jrpc_result(t);
+}
+
 static bool all_equipment_connected()
 {
     return pCamera && pCamera->Connected &&
@@ -1478,6 +1510,45 @@ static void shutdown(JObj& response, const json_value *params)
     response << jrpc_result(0);
 }
 
+static void get_camera_binning(JObj& response, const json_value *params)
+{
+    if (pCamera && pCamera->Connected)
+    {
+        int binning = pCamera->Binning;
+        response << jrpc_result(binning);
+    }
+    else
+        response << jrpc_error(1, "camera not connected");
+}
+
+static void get_guide_output_enabled(JObj& response, const json_value *params)
+{
+    if (pMount)
+        response << jrpc_result(pMount->GetGuidingEnabled());
+    else
+        response << jrpc_error(1, "mount not defined");
+}
+
+static void set_guide_output_enabled(JObj& response, const json_value *params)
+{
+    Params p("enabled", params);
+    const json_value *val = p.param("enabled");
+    bool enable;
+    if (!val || !bool_param(val, &enable))
+    {
+        response << jrpc_error(JSONRPC_INVALID_PARAMS, "expected enabled boolean param");
+        return;
+    }
+
+    if (pMount)
+    {
+        pMount->SetGuidingEnabled(enable);
+        response << jrpc_result(0);
+    }
+    else
+        response << jrpc_error(1, "mount not defined");
+}
+
 static void dump_request(const wxSocketClient *cli, const json_value *req)
 {
     Debug.Write(wxString::Format("evsrv: cli %p request: %s\n", cli, json_format(req)));
@@ -1540,6 +1611,10 @@ static bool handle_request(const wxSocketClient *cli, JObj& response, const json
         { "get_use_subframes", &get_use_subframes, },
         { "get_search_region", &get_search_region, },
         { "shutdown", &shutdown, },
+        { "get_camera_binning", &get_camera_binning, },
+        { "get_current_equipment", &get_current_equipment, },
+        { "get_guide_output_enabled", &get_guide_output_enabled, },
+        { "set_guide_output_enabled", &set_guide_output_enabled, },
     };
 
     for (unsigned int i = 0; i < WXSIZEOF(methods); i++)
@@ -2001,4 +2076,37 @@ void EventServer::NotifyAlert(const wxString& msg, int type)
     ev << NV("Type", s);
 
     do_notify(m_eventServerClients, ev);
+}
+
+template<typename T>
+static void NotifyGuidingParam(const EventServer::CliSockSet& clients, const wxString& name, T val)
+{
+    if (clients.empty())
+        return;
+
+    Ev ev("GuideParamChange");
+    ev << NV("Name", name);
+    ev << NV("Value", val);
+
+    do_notify(clients, ev);
+}
+
+void EventServer::NotifyGuidingParam(const wxString& name, double val)
+{
+    ::NotifyGuidingParam(m_eventServerClients, name, val);
+}
+
+void EventServer::NotifyGuidingParam(const wxString& name, int val)
+{
+    ::NotifyGuidingParam(m_eventServerClients, name, val);
+}
+
+void EventServer::NotifyGuidingParam(const wxString& name, bool val)
+{
+    ::NotifyGuidingParam(m_eventServerClients, name, val);
+}
+
+void EventServer::NotifyGuidingParam(const wxString& name, const wxString& val)
+{
+    ::NotifyGuidingParam(m_eventServerClients, name, val);
 }

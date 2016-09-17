@@ -233,7 +233,7 @@ MyFrame::MyFrame(int instanceNumber, wxLocale *locale)
     pGuider->SetLockPosIsSticky(sticky);
     tools_menu->Check(EEGG_STICKY_LOCK, sticky);
 
-    SetMinSize(wxSize(wxMax(400, m_statusbar->GetMinSBWidth()), 300));
+    SetMinSize(wxSize(300, 300));
 
     wxString geometry = pConfig->Global.GetString("/geometry", wxEmptyString);
     if (geometry == wxEmptyString)
@@ -2437,6 +2437,30 @@ void MyFrame::RegisterTextCtrl(wxTextCtrl *ctrl)
     ctrl->Bind(wxEVT_KILL_FOCUS, &MyFrame::OnTextControlKillFocus, this);
 }
 
+// Reset the guiding parameters and the various graphical displays when binning changes.  This should be done when guiding starts 
+// so the user can experiment with binning without losing guider settings
+void MyFrame::HandleBinningChange()
+{
+    if (pMount)
+    {
+        pAdvancedDialog->ResetGuidingParams();
+        wxCommandEvent dummyEvt;
+        if (pGraphLog)
+        {
+            pGraphLog->OnButtonClear(dummyEvt);
+            pGraphLog->UpdateControls();
+        }
+        if (pStepGuiderGraph)
+            pStepGuiderGraph->OnButtonClear(dummyEvt);
+        if (pTarget)
+        {
+            pTarget->OnButtonClear(dummyEvt);
+            pTarget->UpdateControls();
+        }
+        Alert(_("Guiding parameters have been reset because the camera binning changed. You should use separate profiles for different binning values."));
+    }
+}
+
 MyFrameConfigDialogPane *MyFrame::GetConfigDialogPane(wxWindow *pParent)
 {
     return new MyFrameConfigDialogPane(pParent, this);
@@ -2762,4 +2786,31 @@ void MyFrame::PlaceWindowOnScreen(wxWindow *win, int x, int y)
     }
     else
         win->Move(x, y);
+}
+
+template<typename T>
+static void NotifyGuidingParam(const wxString& name, T val)
+{
+    GuideLog.SetGuidingParam(name, val);
+    EvtServer.NotifyGuidingParam(name, val);
+}
+
+void MyFrame::NotifyGuidingParam(const wxString& name, double val)
+{
+    ::NotifyGuidingParam(name, val);
+}
+
+void MyFrame::NotifyGuidingParam(const wxString& name, int val)
+{
+    ::NotifyGuidingParam(name, val);
+}
+
+void MyFrame::NotifyGuidingParam(const wxString& name, bool val)
+{
+    ::NotifyGuidingParam(name, val);
+}
+
+void MyFrame::NotifyGuidingParam(const wxString& name, const wxString& val)
+{
+    ::NotifyGuidingParam(name, val);
 }
